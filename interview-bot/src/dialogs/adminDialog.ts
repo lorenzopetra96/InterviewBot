@@ -102,3 +102,6 @@ export class AdminDialog extends ComponentDialog {
     
    
 }
+
+module.exports.AdminDialog = AdminDialog;
+module.exports.ADMIN_DIALOG = ADMIN_DIALOG;

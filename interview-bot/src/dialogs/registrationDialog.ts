@@ -125,7 +125,7 @@ export class RegistrationDialog extends ComponentDialog {
         conn.query(finalquery).then((result) => console.log(result));
 
               
-        await step.context.sendActivity("Registrato con successo :)");
+        await step.context.sendActivity("Registrato con successo. Ora facciamo qualche passo indietro");
         
         return await step.endDialog();
     }
@@ -133,3 +133,6 @@ export class RegistrationDialog extends ComponentDialog {
     
 
 }
+
+module.exports.RegistrationDialog = RegistrationDialog;
+module.exports.REGISTRATION_DIALOG = REGISTRATION_DIALOG;

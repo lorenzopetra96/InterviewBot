@@ -1,0 +1,46 @@
+{
+    "type": "AdaptiveCard",
+    "body": [
+        {
+            "type": "Image",
+            "url": "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Ftse4.mm.bing.net%2Fth%3Fid%3DOIP.TNxA5KjVB5cmx-O5DcUdhwHaEK%26pid%3DApi&f=1",
+            "horizontalAlignment": "Center"
+        },
+        {
+            "type": "TextBlock",
+            "size": "ExtraLarge",
+            "weight": "Bolder",
+            "text": "PetrazSoftware",
+            "horizontalAlignment": "Center",
+            "height": "stretch"
+        },
+        {
+            "type": "TextBlock",
+            "text": "PetrazSoftware è un'azienda specializzata nella creazione di software web personalizzato sulle specifiche esigenze del Cliente.\n",
+            "wrap": true,
+            "isSubtle": true
+        },
+        {
+            "type": "FactSet",
+            "facts": [
+                {
+                    "title": "Dove siamo:",
+                    "value": "Piazza Monte Paperopoli n. 4 00202 Roma Italia"
+                },
+                {
+                    "title": "E-mail:",
+                    "value": "petrazsoftware@softwareitaly.it"
+                },
+                {
+                    "title": "Telefono:",
+                    "value": "+28 928 039 90 90"
+                }
+            ],
+            "spacing": "Medium",
+            "separator": true,
+            "height": "stretch"
+        }
+    ],
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "version": "1.1"
+}

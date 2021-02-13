@@ -44,7 +44,7 @@ export class EchoBot extends ActivityHandler {
 
         this.onMembersAdded(async (context, next) => {
             const membersAdded = context.activity.membersAdded;
-            const welcomeText = 'Ciao, sono il bot HR di Paperopoli';
+            const welcomeText = 'Ciao, sono il bot HR di PetrazSoftware';
             for (const member of membersAdded) {
                 if (member.id !== context.activity.recipient.id) {
                     await context.sendActivity(welcomeText, welcomeText);
