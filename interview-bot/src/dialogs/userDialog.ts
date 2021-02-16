@@ -12,25 +12,28 @@ import {
     WaterfallStepContext
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
-
+import { InterviewDialog } from "./interviewDialog";
 import * as AdaptiveCards from "adaptivecards";
 var cardJSON = require("../../images/cards/infoCard.json");
 
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 const TEXT_PROMPT = 'TEXT_PROMPT';
 const USER_DIALOG = 'USER_DIALOG';
+const INTERVIEW_DIALOG = 'INTERVIEW_DIALOG';
 
 var conn = require('./../../connectionpool.js');
 
 export class UserDialog extends ComponentDialog {
     private res;
+    private luisRecognizer: InterviewBotRecognizer;
     private datiUtente;
-    constructor(){
+    constructor(luisRecognizer: InterviewBotRecognizer){
         super(USER_DIALOG);
-
+        this.luisRecognizer = luisRecognizer;
         
         //The primary goal of PromptDialog is an easy way to get input from the user and validate the data
         this.addDialog(new TextPrompt(TEXT_PROMPT));
+        this.addDialog(new InterviewDialog(luisRecognizer));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
                 this.welcomeStep.bind(this),
                 this.menuStep.bind(this),
@@ -63,14 +66,12 @@ export class UserDialog extends ComponentDialog {
 
        
         this.datiUtente = step._info.options;
-        console.log("SONO IN USERDIALOG: ");
         var finalquery = 'SELECT * FROM "User_Pos"' + "WHERE email='" + this.datiUtente.email + "';";
         
         
         console.log(this.datiUtente.nome + " " + this.datiUtente.cognome);
         await conn.query(finalquery).then((result) => {
             this.res = result;
-            console.log(result);
         });
 
         const welcomeText = "Benvenuto " + this.datiUtente.nome + " " + this.datiUtente.cognome + " !"
@@ -82,7 +83,6 @@ export class UserDialog extends ComponentDialog {
 
     async menuStep(step){
         var card;
-        console.log("NUMERO: " + this.res.rowCount);
         if(this.res.rowCount === undefined){
             
             const buttons = [{
@@ -140,7 +140,6 @@ export class UserDialog extends ComponentDialog {
     async choiceStep(step){
 
         if(step.result == "Info"){
-            console.log(cardJSON);
             await step.context.sendActivity({
                 attachments: [CardFactory.adaptiveCard(cardJSON)]
             });
@@ -154,14 +153,14 @@ export class UserDialog extends ComponentDialog {
                 });
             }
             else{
-
+                return await step.beginDialog(INTERVIEW_DIALOG, this.datiUtente);
             }
         }
         else{
             await step.context.sendActivity("Non hai effettuato nessuna scelta, quindi torniamo indietro di qualche passo..");
-            return await step.replaceDialog(this.id,this.datiUtente);
         }
 
+        return await step.replaceDialog(this.id,this.datiUtente);
     }
 
     async finalStep(step) {

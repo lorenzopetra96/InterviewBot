@@ -1,47 +1,11 @@
-var mysql = require('mysql');
-
-// connect to the db
-dbConnectionInfo = {
-  host: "hrdbmysql01.mysql.database.azure.com",
-  port: "3306",
-  user: "lorenzopetra96",
-  password: "Napoletano96!",
-  connectionLimit: 5, //mysql connection pool length
-  database: "hrdbmysql01"
-};
-
-//For mysql single connection
-/* var dbconnection = mysql.createConnection(
-        dbConnectionInfo
-); 
-
- dbconnection.connect(function (err) {
-    if (!err) {
-        console.log("Database is connected ... nn");
-    } else {
-        console.log("Error connecting database ... nn");
-    }
-}); 
-
-*/
-
-//create mysql connection pool
-var dbconnection = mysql.createPool(
-  dbConnectionInfo
-);
-
-// Attempt to catch disconnects 
-dbconnection.on('connection', function (connection) {
-  console.log('DB Connection established');
-
-  connection.on('error', function (err) {
-    console.error(new Date(), 'MySQL error', err.code);
-  });
-  connection.on('close', function (err) {
-    console.error(new Date(), 'MySQL close', err);
-  });
-
-});
-
-
-module.exports = dbconnection;
+const axios = require('axios');
+const SUBSCRIPTION_KEY = 'e187e55c2b3f4440817b8618964a09db'
+if (!SUBSCRIPTION_KEY) {
+  throw new Error('Missing the AZURE_SUBSCRIPTION_KEY environment variable')
+}
+function bingWebSearch(query) {
+  
+    
+}
+const query = process.argv[2] || 'Microsoft Cognitive Services'
+bingWebSearch(query)

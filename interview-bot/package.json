@@ -22,9 +22,11 @@
         "botbuilder": "~4.10.3",
         "botbuilder-ai": "^4.11.1",
         "dotenv": "^8.2.0",
+        "https": "^1.0.0",
         "mssql": "^6.3.1",
         "mysql": "^2.18.1",
         "replace": "~1.1.1",
+        "request": "^2.88.2",
         "restify": "~8.5.1",
         "tedious": "^11.0.3",
         "tedious-connection-pool": "^1.0.5"

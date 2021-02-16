@@ -36,7 +36,7 @@ export class MainDialog extends ComponentDialog {
         //The primary goal of PromptDialog is an easy way to get input from the user and validate the data
         this.addDialog(new TextPrompt(TEXT_PROMPT));
         this.addDialog(new RegistrationDialog());
-        this.addDialog(new UserDialog());
+        this.addDialog(new UserDialog(luisRecognizer));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
                 this.welcomeStep.bind(this),
                 this.identificationStep1.bind(this),
@@ -122,8 +122,6 @@ export class MainDialog extends ComponentDialog {
             this.res = result;
         });
 
-        console.log("Sono in Step2");
-        console.log(this.res);
         //await step.context.sendActivity("Dammi pochi secondi per controllare..");
         return await step.next(step);
     }
