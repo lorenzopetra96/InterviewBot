@@ -20,8 +20,8 @@ const TEXT_PROMPT = 'TEXT_PROMPT';
 const INTERVIEW_DIALOG = 'INTERVIEW_DIALOG';
 var conn = require('./../../connectionpool.js');
 const axios = require('axios');
-const SUBSCRIPTION_KEY = process.env['BING_SEARCH_V7_SUBSCRIPTION_KEY'];
-const FUNCTION_ENDPOINT = process.env['AzureFunctionEndPoint'];
+const SUBSCRIPTION_KEY = process.env.BING_SEARCH_V7_SUBSCRIPTION_KEY;
+const FUNCTION_ENDPOINT = process.env.AzureFunctionEndPoint;
 
 export class InterviewDialog extends ComponentDialog {
     private datiUtente;
@@ -34,6 +34,7 @@ export class InterviewDialog extends ComponentDialog {
     private posizione_scelta;
     private idPosizioneScelta;
     private urls = [];
+    private emailadmin;
     constructor(luisRecognizer: InterviewBotRecognizer){
         super(INTERVIEW_DIALOG);
         this.luisRecognizer = luisRecognizer;
@@ -319,12 +320,14 @@ export class InterviewDialog extends ComponentDialog {
           this.urls.push(res.data.webPages.value[0].url);
         })
         
-        
+        await step.context.sendActivity("Attendi alcuni secondi che controllo i risultati del test");
         //await conn.query('INSERT INTO "User_Pos"(email,idPosAp) VALUES ' + "('" + this.datiUtente.email + "','" + this.idPosizioneScelta + "');").then(res => {console.log("INSERITA ASSOCIAZIONE POSIZIONE-UTENTE\n" + res);});
         
         //await conn.query('INSERT INTO "User_Quiz"(email,idQuiz,risposta,punteggio) VALUES ' + "('" + this.datiUtente.email + "','" + this.quiz[0].idQuiz + "','" + this.risposte[0] + "','" + punteggio[0] + "');").then(res => {console.log("PRIMO QUIZ INSERITO\n" + res);});
         //await conn.query('INSERT INTO "User_Quiz"(email,idQuiz,risposta,punteggio) VALUES ' + "('" + this.datiUtente.email + "','" + this.quiz[1].idQuiz + "','" + this.risposte[1] + "','" + punteggio[1] + "');").then(res => {console.log("SECONDO QUIZ INSERITO\n" + res);});
         //await conn.query('INSERT INTO "User_Quiz"(email,idQuiz,risposta,punteggio) VALUES ' + "('" + this.datiUtente.email + "','" + this.quiz[2].idQuiz + "','" + this.risposte[2] + "','" + punteggio[2] + "');").then(res => {console.log("TERZO QUIZ INSERITO\n" + res);});
+        await conn.query('SELECT * FROM "User" WHERE "User".ruolo = ' + '0').then(result => this.emailadmin = result.recordset[0].email);
+        
         
         return await step.next(step);
     }
@@ -342,7 +345,7 @@ export class InterviewDialog extends ComponentDialog {
         
         console.log("Punteggio: " + punteggio);
 
-        var oggetto = "Risultati colloquio " + this.datiUtente.cognome + " " + this.datiUtente.nome + " - Posizione scelta: " + this.posizione_scelta;
+        var oggetto = "Risultati colloquio " + this.datiUtente.cognome + " " + this.datiUtente.nome + "[ " + this.datiUtente.email + " ] - Posizione scelta: " + this.posizione_scelta;
 
         var datiutente = "\nIl seguente test è stato fatto da " +  this.datiUtente.cognome + " " + this.datiUtente.nome + " per la posizione di " + this.posizione_scelta;
 
@@ -357,13 +360,14 @@ export class InterviewDialog extends ComponentDialog {
         
         const testo = datiutente + quiz1 + quiz2 + quiz3
         console.log(testo);
-        /*
+        
         var url = FUNCTION_ENDPOINT;
             var option = {
                 method: 'post',
                 url: url,
                 data: {
                     email : this.datiUtente.email,
+                    emailadmin : this.emailadmin,
                     oggetto: oggetto,
                     testo: testo
                 }
@@ -372,12 +376,12 @@ export class InterviewDialog extends ComponentDialog {
 
             if (res.status = 200) {
                 // Email successfully sent
-                await step.context.sendActivity('Richiesta inviata con successo!');
+                await step.context.sendActivity('E-mail inviata con successo!');
             } else {
                 // Failed to send the email
-                await step.context.sendActivity('Mi dispiace, non sono riuscito ad inviare la richiesta.');
+                await step.context.sendActivity("C'è stato qualche problema nell'invio dell'e-mail..");
             }
-        */
+        
 
         return await step.next(step);
 
@@ -396,6 +400,7 @@ function clean(){
     this.quiz = [];
     this.texts = [];
     this.res = null;
+    this.emailadmin = null;
     this.buttons = [];
     this.risposte = [];
     this.posizione_scelta = null;
