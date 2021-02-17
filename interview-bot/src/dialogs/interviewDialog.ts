@@ -21,7 +21,7 @@ const INTERVIEW_DIALOG = 'INTERVIEW_DIALOG';
 var conn = require('./../../connectionpool.js');
 const axios = require('axios');
 const SUBSCRIPTION_KEY = process.env['BING_SEARCH_V7_SUBSCRIPTION_KEY'];
-
+const FUNCTION_ENDPOINT = process.env['AzureFunctionEndPoint'];
 
 export class InterviewDialog extends ComponentDialog {
     private datiUtente;
@@ -49,7 +49,8 @@ export class InterviewDialog extends ComponentDialog {
                 this.secondquestionStep.bind(this),
                 this.thirdquestionStep.bind(this),
                 this.resultStep.bind(this),
-                this.mailStep.bind(this)
+                this.mailStep.bind(this),
+
             ]));
 
         this.initialDialogId = WATERFALL_DIALOG;
@@ -222,7 +223,17 @@ export class InterviewDialog extends ComponentDialog {
 
     async secondquestionStep(step){
         this.risposte.push(step.result);
-
+        var url = 'https://api.bing.microsoft.com/v7.0/search?q=' + encodeURIComponent(this.quiz[0].domanda);
+        await axios.get(url, {
+            headers: {
+                'Ocp-Apim-Subscription-Key': SUBSCRIPTION_KEY,
+                "Accept": "application/json",
+                'location' : 'global'
+            },
+        }).then(res => {
+          console.log(res.data.webPages.value[0].url);
+          this.urls.push(res.data.webPages.value[0].url);
+        })
         const risposte = [{
             type: ActionTypes.ImBack,
             title: "1) " + this.quiz[1].primarisp,
@@ -254,7 +265,17 @@ export class InterviewDialog extends ComponentDialog {
     
     async thirdquestionStep(step){
         this.risposte.push(step.result);
-
+        var url = 'https://api.bing.microsoft.com/v7.0/search?q=' + encodeURIComponent(this.quiz[1].domanda);
+        await axios.get(url, {
+            headers: {
+                'Ocp-Apim-Subscription-Key': SUBSCRIPTION_KEY,
+                "Accept": "application/json",
+                'location' : 'global'
+            },
+        }).then(res => {
+          console.log(res.data.webPages.value[0].url);
+          this.urls.push(res.data.webPages.value[0].url);
+        })
         const risposte = [{
             type: ActionTypes.ImBack,
             title: "1) " + this.quiz[2].primarisp,
@@ -286,13 +307,18 @@ export class InterviewDialog extends ComponentDialog {
 
     async resultStep(step){
         this.risposte.push(step.result);
-        var punteggio = [];
-        for(var i = 0; i < 3; i++){
-            if(this.risposte[i]==this.quiz[i].rispcorretta) punteggio.push(1);
-            else punteggio.push(0);
-        }
-
-        console.log("Punteggio: " + punteggio);
+        var url = 'https://api.bing.microsoft.com/v7.0/search?q=' + encodeURIComponent(this.quiz[2].domanda);
+        await axios.get(url, {
+            headers: {
+                'Ocp-Apim-Subscription-Key': SUBSCRIPTION_KEY,
+                "Accept": "application/json",
+                'location' : 'global'
+            },
+        }).then(res => {
+          console.log(res.data.webPages.value[0].url);
+          this.urls.push(res.data.webPages.value[0].url);
+        })
+        
         
         //await conn.query('INSERT INTO "User_Pos"(email,idPosAp) VALUES ' + "('" + this.datiUtente.email + "','" + this.idPosizioneScelta + "');").then(res => {console.log("INSERITA ASSOCIAZIONE POSIZIONE-UTENTE\n" + res);});
         
@@ -300,46 +326,70 @@ export class InterviewDialog extends ComponentDialog {
         //await conn.query('INSERT INTO "User_Quiz"(email,idQuiz,risposta,punteggio) VALUES ' + "('" + this.datiUtente.email + "','" + this.quiz[1].idQuiz + "','" + this.risposte[1] + "','" + punteggio[1] + "');").then(res => {console.log("SECONDO QUIZ INSERITO\n" + res);});
         //await conn.query('INSERT INTO "User_Quiz"(email,idQuiz,risposta,punteggio) VALUES ' + "('" + this.datiUtente.email + "','" + this.quiz[2].idQuiz + "','" + this.risposte[2] + "','" + punteggio[2] + "');").then(res => {console.log("TERZO QUIZ INSERITO\n" + res);});
         
-        
-        for(var i = 0; i<punteggio.length; i++){
-            if(!punteggio[i]) this.urls.push(bingQuery(this.quiz[i].domanda));
-            else this.urls.push("Risposta esatta");
-        }
-
-        await step.context.sendActivity(this.datiUtente.nome + " hai totalizzato un punteggio pari a " + punteggio[0] + punteggio[1] + punteggio[2] + "\nA breve ti invierò un'e-mail con il test corretto.\nRicorda che da ora in poi potrai solo visualizzare le informazioni dell'azienda.");
-        
+        return await step.next(step);
     }
  
     async mailStep(step){
-
         
+        var punteggio = [];
+        for(var i = 0; i < 3; i++){
+            if(this.risposte[i]==this.quiz[i].rispcorretta) punteggio.push(1);
+            else punteggio.push(0);
+        }
+        var totale =  punteggio[0] + punteggio[1] + punteggio[2] ;
+        
+        await step.context.sendActivity(this.datiUtente.nome + " hai totalizzato un punteggio pari a " + totale + ".\nA breve ti invierò un'e-mail con il test corretto.\nRicorda che da ora in poi potrai solo visualizzare le informazioni dell'azienda.");
+        
+        console.log("Punteggio: " + punteggio);
+
+        var oggetto = "Risultati colloquio " + this.datiUtente.cognome + " " + this.datiUtente.nome + " - Posizione scelta: " + this.posizione_scelta;
+
+        var datiutente = "\nIl seguente test è stato fatto da " +  this.datiUtente.cognome + " " + this.datiUtente.nome + " per la posizione di " + this.posizione_scelta;
+
+        var quiz1 = "\n\nTEST\nDomanda numero 1: " + this.quiz[0].domanda + "\nRisposta esatta: " + this.quiz[0].rispcorretta + "\nRisposta data: " + this.risposte[0] + "\nPunteggio: " + punteggio[0];
+        if(!punteggio[0]) quiz1 = quiz1 + "\nLink consigliato per l'argomento: " + this.urls[0];
+        var quiz2 = "\n\nDomanda numero 2: " + this.quiz[1].domanda + "\nRisposta esatta: " + this.quiz[1].rispcorretta + "\nRisposta data: " + this.risposte[1] + "\nPunteggio: " + punteggio[1];
+        
+        if(!punteggio[1]) quiz2 = quiz2 + "\nLink consigliato per l'argomento: " + this.urls[1]; 
+        var quiz3 = "\n\nDomanda numero 3: " + this.quiz[2].domanda + "\nRisposta esatta: " + this.quiz[2].rispcorretta + "\nRisposta data: " + this.risposte[2] + "\nPunteggio: " + punteggio[2];
+        
+        if(!punteggio[2]) quiz3 = quiz3 + "\nLink consigliato per l'argomento: " + this.urls[2];
+        
+        const testo = datiutente + quiz1 + quiz2 + quiz3
+        console.log(testo);
+        /*
+        var url = FUNCTION_ENDPOINT;
+            var option = {
+                method: 'post',
+                url: url,
+                data: {
+                    email : this.datiUtente.email,
+                    oggetto: oggetto,
+                    testo: testo
+                }
+            }
+            const res = await axios(option);
+
+            if (res.status = 200) {
+                // Email successfully sent
+                await step.context.sendActivity('Richiesta inviata con successo!');
+            } else {
+                // Failed to send the email
+                await step.context.sendActivity('Mi dispiace, non sono riuscito ad inviare la richiesta.');
+            }
+        */
+
+        return await step.next(step);
 
     }
 
     async finalStep(step){
-
+        return await step.endDialog();
     }
 
 
     
    
-}
-
-function bingQuery(query){
-    var url = 'https://api.bing.microsoft.com/v7.0/search?q=' + encodeURIComponent(query);
-    var result;
-    axios.get(url, {
-        headers: {
-            'Ocp-Apim-Subscription-Key': SUBSCRIPTION_KEY,
-            "Accept": "application/json",
-            'location' : 'global'
-        },
-    }).then(res => {
-      console.log(res.data.webPages.value[0].url);
-      result = res;
-    })
-    return result;
-
 }
 
 function clean(){

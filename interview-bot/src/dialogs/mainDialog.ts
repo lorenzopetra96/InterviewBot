@@ -27,6 +27,7 @@ var conn = require('./../../connectionpool.js');
 export class MainDialog extends ComponentDialog {
     private luisRecognizer: InterviewBotRecognizer;
     private res;
+    private registrazione = false;
     constructor(luisRecognizer: InterviewBotRecognizer, userState){
         super(MAIN_DIALOG);
 
@@ -94,7 +95,7 @@ export class MainDialog extends ComponentDialog {
         
         if(message == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
             await step.context.sendActivity("Allora è il momento di registrarsi!");
-            
+            this.registrazione = true;
             return await step.beginDialog(REGISTRATION_DIALOG);
 
         }
@@ -114,7 +115,7 @@ export class MainDialog extends ComponentDialog {
     }
 
     async identificationStep2(step){
-
+        if(this.registrazione) {this.registrazione = false; return await step.replaceDialog(this.id);}
         step.values.email = step.result;
         var finalquery = "SELECT * FROM" + ' "User"' + " WHERE email = '" + step.values.email + "';"; 
         
@@ -127,7 +128,7 @@ export class MainDialog extends ComponentDialog {
     }
 
     async identificationStep3(step){
-        if(this.res.rowCount != 0){
+        if(this.res.rowsAffected != 0){
             let email;
             let ruolo;
             var datiUtente;

@@ -38,6 +38,7 @@ export class UserDialog extends ComponentDialog {
                 this.welcomeStep.bind(this),
                 this.menuStep.bind(this),
                 this.choiceStep.bind(this),
+                this.prefinalStep.bind(this),
                 this.finalStep.bind(this)
             ]));
 
@@ -69,13 +70,13 @@ export class UserDialog extends ComponentDialog {
         var finalquery = 'SELECT * FROM "User_Pos"' + "WHERE email='" + this.datiUtente.email + "';";
         
         
-        console.log(this.datiUtente.nome + " " + this.datiUtente.cognome);
+        console.log(finalquery);
         await conn.query(finalquery).then((result) => {
             this.res = result;
+            console.log(result);
         });
 
-        const welcomeText = "Benvenuto " + this.datiUtente.nome + " " + this.datiUtente.cognome + " !"
-        await step.context.sendActivity(welcomeText);
+    
         return await step.next(step);
         
 
@@ -83,7 +84,7 @@ export class UserDialog extends ComponentDialog {
 
     async menuStep(step){
         var card;
-        if(this.res.rowCount === undefined){
+        if(this.res.rowsAffected == 0){
             
             const buttons = [{
                 type: ActionTypes.ImBack,
@@ -97,7 +98,7 @@ export class UserDialog extends ComponentDialog {
             }];
     
             card = CardFactory.heroCard(
-                '',
+                "Benvenuto " + this.datiUtente.nome + " " + this.datiUtente.cognome + " !",
                 undefined,
                 buttons, {
                     text: "Vuoi visualizzare le informazioni dell'azienda o effettuare un colloquio?"
@@ -120,7 +121,7 @@ export class UserDialog extends ComponentDialog {
                 }];
         
                 card = CardFactory.heroCard(
-                    '',
+                    "Benvenuto " + this.datiUtente.nome + " " + this.datiUtente.cognome + " !",
                     undefined,
                     buttons, {
                         text: "Vuoi visualizzare le informazioni dell'azienda?"
@@ -146,11 +147,10 @@ export class UserDialog extends ComponentDialog {
 
         }
         else if(step.result == "Colloquio"){
-            if(this.res.rowCount != undefined){
+            if(this.res.rowsAffected != 0){
                 await step.context.sendActivity("Mi dispiace ma hai già effettuato un colloquio, puoi solo visualizzare le informazioni dell'azienda:");
-                return await step.context.sendActivity({
-                    attachments: [CardFactory.adaptiveCard(cardJSON)]
-                });
+                
+                return await step.replaceDialog(this.id, this.datiUtente); 
             }
             else{
                 return await step.beginDialog(INTERVIEW_DIALOG, this.datiUtente);
@@ -160,13 +160,30 @@ export class UserDialog extends ComponentDialog {
             await step.context.sendActivity("Non hai effettuato nessuna scelta, quindi torniamo indietro di qualche passo..");
         }
 
-        return await step.replaceDialog(this.id,this.datiUtente);
+        return await step.next(step);
+        
     }
 
-    async finalStep(step) {
-        return await step.endDialog();
+    async prefinalStep(step){
+
+        return await step.prompt(TEXT_PROMPT, 'Vuoi tornare al menù precedente?');
+
     }
-    
+
+    async finalStep(step){
+        const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
+        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
+            return await step.endDialog();
+        }
+        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult) === 'Si'){
+            return await step.replaceDialog(this.id, this.datiUtente);
+        }
+        else{
+            await step.context.sendActivity("Non ho ben capito cosa intendi, facciamo un passo indietro..");
+            return await step.endDialog();
+        }
+    }
+
    
 }
 
