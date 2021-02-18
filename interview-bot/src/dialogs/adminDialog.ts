@@ -12,20 +12,28 @@ import {
     WaterfallStepContext
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
-
+import { SPositionDialog } from "./searchforpositionDialog";
+//import { SearchforemailDialog } from "./searchforemailDialog";
+//import { SPositionDialog } from "./searchforpositionDialog";
 
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 const TEXT_PROMPT = 'TEXT_PROMPT';
 const ADMIN_DIALOG = 'ADMIN_DIALOG';
+const SEARCHFOREMAIL_DIALOG = 'SEARCHFOREMAIL_DIALOG';
+const SPOSITION_DIALOG = 'SPOSITION_DIALOG';
+var conn = require('./../../connectionpool.js');
 
 export class AdminDialog extends ComponentDialog {
-
-    constructor(){
+    private datiUtente;
+    private luisRecognizer: InterviewBotRecognizer;
+    constructor(luisRecognizer: InterviewBotRecognizer){
         super(ADMIN_DIALOG);
 
-        
+        this.luisRecognizer = luisRecognizer;
         //The primary goal of PromptDialog is an easy way to get input from the user and validate the data
         this.addDialog(new TextPrompt(TEXT_PROMPT));
+        //this.addDialog(new SearchforemailDialog(luisRecognizer));
+        this.addDialog(new SPositionDialog(luisRecognizer));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
                 this.menuStep.bind(this),
                 this.finalStep.bind(this)
@@ -54,8 +62,9 @@ export class AdminDialog extends ComponentDialog {
 
     async menuStep(step){
 
-        const welcomeText = "Benvenuto Lorienzo, come posso aiutarti?"
-        await step.context.sendActivity(welcomeText);
+        this.datiUtente = step._info.options;
+        const welcomeText = "Benvenuto " + this.datiUtente.nome + " " + this.datiUtente.cognome + ", come posso aiutarti?";
+        
 
         const reply = {
             type: ActivityTypes.Message 
@@ -63,21 +72,19 @@ export class AdminDialog extends ComponentDialog {
 
         const buttons = [{
             type: ActionTypes.ImBack,
-            title: 'Visualizza gli ultimi colloqui',
-            value: 'Colloqui'
+            title: 'Effettua una ricerca per utente',
+            value: 'Utente'
         },
         {
             type: ActionTypes.ImBack,
-            title: 'Effettua una ricerca per utente/posizione',
-            value: 'Ricerca'
+            title: 'Effettua una ricerca per posizione aperta',
+            value: 'Posizione'
         }];
 
         const card = CardFactory.heroCard(
-            '',
+            welcomeText,
             undefined,
-            buttons, {
-                text: 'Vuoi visualizzare gli ultimi colloqui o effettuare una ricerca?'
-            }
+            buttons
         );
         
         const message = MessageFactory.attachment(card);
@@ -92,12 +99,35 @@ export class AdminDialog extends ComponentDialog {
 
     async choiceStep(step){
 
+        if(step.result == "Utente"){
+            return await step.beginDialog(SEARCHFOREMAIL_DIALOG, this.datiUtente);
+        }
+        else if(step.result == "Posizione"){
+            return await step.beginDialog(SPOSITION_DIALOG, this.datiUtente);
+        }
+        else{
+            await step.context.sendActivity("Non hai effettuato nessuna scelta, quindi torniamo indietro di qualche passo..");
+        }
        
+        return step.next(step);
+    }
 
+    async prefinalStep(step){
+        return await step.prompt(TEXT_PROMPT, 'Vuoi tornare al menù precedente?');
     }
 
     async finalStep(step) {
-        return await step.endDialog();
+        const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
+        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
+            return await step.endDialog();
+        }
+        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult) === 'Si'){
+            return await step.replaceDialog(this.id, this.datiUtente);
+        }
+        else{
+            await step.context.sendActivity("Non ho ben capito cosa intendi, facciamo un passo indietro..");
+            return await step.endDialog();
+        }
     }
     
    

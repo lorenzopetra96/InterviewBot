@@ -12,6 +12,7 @@ import {
     WaterfallStepContext
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
+import { AdminDialog } from "./adminDialog";
 import { RegistrationDialog } from "./registrationDialog";
 import { UserDialog } from "./userDialog";
 
@@ -38,6 +39,7 @@ export class MainDialog extends ComponentDialog {
         this.addDialog(new TextPrompt(TEXT_PROMPT));
         this.addDialog(new RegistrationDialog());
         this.addDialog(new UserDialog(luisRecognizer));
+        this.addDialog(new AdminDialog(luisRecognizer));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
                 this.welcomeStep.bind(this),
                 this.identificationStep1.bind(this),
