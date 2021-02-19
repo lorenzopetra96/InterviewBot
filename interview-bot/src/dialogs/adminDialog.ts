@@ -1,15 +1,11 @@
-import { ActivityHandler, MessageFactory , ActivityTypes, ActionTypes, CardFactory } from "botbuilder";
-import { InputHints, StatePropertyAccessor, TurnContext } from 'botbuilder';
+import { MessageFactory , ActivityTypes, ActionTypes, CardFactory } from "botbuilder";
 import { LuisRecognizer } from 'botbuilder-ai';
 import {
     ComponentDialog,
     DialogSet,
-    DialogState,
-    DialogTurnResult,
     DialogTurnStatus,
     TextPrompt,
-    WaterfallDialog,
-    WaterfallStepContext
+    WaterfallDialog
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
 import { SearchforemailDialog } from "./searchforemailDialog";

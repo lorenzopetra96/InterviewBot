@@ -1,20 +1,12 @@
-import { ActivityHandler, MessageFactory , ActivityTypes } from "botbuilder";
-import { InputHints, StatePropertyAccessor, TurnContext } from 'botbuilder';
-import { LuisRecognizer } from 'botbuilder-ai';
 import {
     ComponentDialog,
     DialogSet,
-    DialogState,
-    DialogTurnResult,
     DialogTurnStatus,
     TextPrompt,
-    WaterfallDialog,
-    WaterfallStepContext
+    WaterfallDialog
 } from 'botbuilder-dialogs';
-import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
-import { DatabaseConnection } from "./../../dbconnection";
 
-const { Connection, Request } = require("tedious");
+
 
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 const TEXT_PROMPT = 'TEXT_PROMPT';
