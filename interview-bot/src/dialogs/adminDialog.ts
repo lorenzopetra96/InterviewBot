@@ -12,15 +12,15 @@ import {
     WaterfallStepContext
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
-import { SPositionDialog } from "./searchforpositionDialog";
-//import { SearchforemailDialog } from "./searchforemailDialog";
-//import { SPositionDialog } from "./searchforpositionDialog";
+import { SearchforemailDialog } from "./searchforemailDialog";
+import { SearchforpositionDialog } from "./searchforpositionDialog";
+
 
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 const TEXT_PROMPT = 'TEXT_PROMPT';
 const ADMIN_DIALOG = 'ADMIN_DIALOG';
 const SEARCHFOREMAIL_DIALOG = 'SEARCHFOREMAIL_DIALOG';
-const SPOSITION_DIALOG = 'SPOSITION_DIALOG';
+const SEARCHFORPOSITION_DIALOG = 'SEARCHFORPOSITION_DIALOG';
 var conn = require('./../../connectionpool.js');
 
 export class AdminDialog extends ComponentDialog {
@@ -32,10 +32,12 @@ export class AdminDialog extends ComponentDialog {
         this.luisRecognizer = luisRecognizer;
         //The primary goal of PromptDialog is an easy way to get input from the user and validate the data
         this.addDialog(new TextPrompt(TEXT_PROMPT));
-        //this.addDialog(new SearchforemailDialog(luisRecognizer));
-        this.addDialog(new SPositionDialog(luisRecognizer));
+        this.addDialog(new SearchforemailDialog(luisRecognizer));
+        this.addDialog(new SearchforpositionDialog(luisRecognizer));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
                 this.menuStep.bind(this),
+                this.choiceStep.bind(this),
+                this.prefinalStep.bind(this),
                 this.finalStep.bind(this)
             ]));
 
@@ -103,7 +105,7 @@ export class AdminDialog extends ComponentDialog {
             return await step.beginDialog(SEARCHFOREMAIL_DIALOG, this.datiUtente);
         }
         else if(step.result == "Posizione"){
-            return await step.beginDialog(SPOSITION_DIALOG, this.datiUtente);
+            return await step.beginDialog(SEARCHFORPOSITION_DIALOG, this.datiUtente);
         }
         else{
             await step.context.sendActivity("Non hai effettuato nessuna scelta, quindi torniamo indietro di qualche passo..");

@@ -364,7 +364,7 @@ export class InterviewDialog extends ComponentDialog {
         const testo = datiutente + quiz1 + quiz2 + quiz3
         console.log(testo);
         
-        var url = 'http://localhost:7071/api/sendemailfunction';
+        var url = FUNCTION_ENDPOINT;
             var option = {
                 method: 'post',
                 url: url,

@@ -16,16 +16,16 @@ import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognize
 
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 const TEXT_PROMPT = 'TEXT_PROMPT';
-const SPOSITION_DIALOG = 'SPOSITION_DIALOG';
+const SEARCHFORPOSITION_DIALOG = 'SEARCHFORPOSITION_DIALOG';
 var conn = require('./../../connectionpool.js');
 
-export class SPositionDialog extends ComponentDialog {
+export class SearchforpositionDialog extends ComponentDialog {
     private datiUtente;
     private luisRecognizer: InterviewBotRecognizer;
     private buttons = [];
     private texts = [];
     constructor(luisRecognizer: InterviewBotRecognizer){
-        super(SPOSITION_DIALOG);
+        super(SEARCHFORPOSITION_DIALOG);
 
         this.luisRecognizer = luisRecognizer;
         //The primary goal of PromptDialog is an easy way to get input from the user and validate the data
@@ -33,7 +33,8 @@ export class SPositionDialog extends ComponentDialog {
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
                 this.welcomeStep.bind(this),
                 this.choiceStep.bind(this),
-                this.openedpositionsStep(this),
+                this.openedpositionsStep.bind(this),
+                this.prefinalStep.bind(this),
                 this.finalStep.bind(this)
             ]));
 
@@ -62,7 +63,7 @@ export class SPositionDialog extends ComponentDialog {
 
         this.datiUtente = step._info.options;
 
-        var finalquery = 'SELECT * FROM "Posizioni_Aperte";';
+        const finalquery = 'SELECT * FROM "Posizioni_Aperte";';
         await conn.query(finalquery).then((result) => {
 
             result.recordset.forEach(elem => {
@@ -86,8 +87,11 @@ export class SPositionDialog extends ComponentDialog {
             JSON.parse(JSON.stringify(this.buttons))
         );
 
+        const message = MessageFactory.attachment(card);
+        await step.context.sendActivity(message);
+
         return await step.prompt(TEXT_PROMPT, {
-            prompt: this.datiUtente.nome + "Scegli una posizione aperta per visualizzare gli indirizzi e-mail associati."
+            prompt: "Scegli una posizione aperta per visualizzare gli indirizzi e-mail associati."
         });
     }
 
@@ -108,6 +112,7 @@ export class SPositionDialog extends ComponentDialog {
                 "text": text,
                 "separator": "true"
             });
+            if(result.rowsAffected != 0){
             result.recordset.forEach(elem => {
                  this.texts.push({
                                    "type": "TextBlock",
@@ -116,9 +121,18 @@ export class SPositionDialog extends ComponentDialog {
                                  });
                 
             });
+            }
+            else{
+                this.texts.push({
+                    "type": "TextBlock",
+                    "text": "Non ci sono candidati per questa posizione aperta",
+                    "wrap": "true"
+                });
+            }
+
         });
 
-        
+        return step.next(step);
 
 
     }
@@ -136,10 +150,13 @@ export class SPositionDialog extends ComponentDialog {
         await step.context.sendActivity({
             attachments: [CardFactory.adaptiveCard(candidati)]
         });
+        
         return await step.prompt(TEXT_PROMPT, 'Vuoi effettuare un\'altra ricerca per posizione aperta?');
     }
 
     async finalStep(step) {
+        this.texts = [];
+        this.buttons = [];
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
         if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
             return await step.endDialog();
@@ -156,5 +173,5 @@ export class SPositionDialog extends ComponentDialog {
    
 }
 
-module.exports.SPositionDialog = SPositionDialog;
-module.exports.SPOSITION_DIALOG = SPOSITION_DIALOG;
+module.exports.SearchforpositionDialog = SearchforpositionDialog;
+module.exports.SEARCHFORPOSITION_DIALOG = SEARCHFORPOSITION_DIALOG;

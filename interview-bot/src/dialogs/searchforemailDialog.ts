@@ -25,7 +25,6 @@ export class SearchforemailDialog extends ComponentDialog {
     private credenziali;
     private quiz;
     private texts = [];
-    private facts = [];
     constructor(luisRecognizer: InterviewBotRecognizer){
         super(SEARCHFOREMAIL_DIALOG);
 
@@ -36,7 +35,7 @@ export class SearchforemailDialog extends ComponentDialog {
                 this.welcomeStep.bind(this),
                 this.dbStep.bind(this),
                 this.testStep.bind(this),
-                this.prefinalStep(this),
+                this.prefinalStep.bind(this),
                 this.finalStep.bind(this)
             ]));
 
@@ -66,7 +65,7 @@ export class SearchforemailDialog extends ComponentDialog {
         this.datiUtente = step._info.options;
         
         return await step.prompt(TEXT_PROMPT, {
-            prompt: this.datiUtente.nome + "Inserisci l'indirizzo e-mail dell'utente per visualizzare il test effettuato."
+            prompt: "Inserisci l'indirizzo e-mail dell'utente per visualizzare il test effettuato."
         });
 
     }
@@ -74,16 +73,17 @@ export class SearchforemailDialog extends ComponentDialog {
     async dbStep(step){
 
         const querycredenz1 = 'SELECT "User".nome , "User".cognome , "Posizioni_Aperte".titolo';
-        const querycredenz2 = 'FROM "User" , "Posizioni_Aperte" , "User_Pos"';
-        const querycredenz3 = 'WHERE "User_Pos".idPosAp = "Posizioni_Aperte".idPosAp AND "User_Pos".email = "User".email AND "User".email =' + "'" + step.result + "';"
+        const querycredenz2 = ' FROM "User" , "Posizioni_Aperte" , "User_Pos" ';
+        const querycredenz3 = 'WHERE  "User".email =' + "'" + step.result + "'" + ' AND "User_Pos".idPosAp = "Posizioni_Aperte".idPosAp AND "User_Pos".email = "User".email;'; 
         var finalquery = querycredenz1 + querycredenz2 + querycredenz3;
+        console.log(finalquery);
         await conn.query(finalquery).then(result => {
             this.credenziali = result;
         });
 
-        const queryquiz1 = 'SELECT  Quiz".domanda, "Quiz".rispcorretta , "User_Quiz".risposta , "User_Quiz".punteggio';
-        const queryquiz2 = 'FROM  "Quiz" , "User_Quiz"';
-        const queryquiz3 = 'WHERE "User_Quiz".email = ' + "'" + step.result + "'" + ' AND "User_Quiz".idQuiz = "Quiz".idQuiz'
+        const queryquiz1 = 'SELECT  "Quiz".domanda, "Quiz".rispcorretta , "User_Quiz".risposta , "User_Quiz".punteggio';
+        const queryquiz2 = ' FROM  "Quiz" , "User_Quiz"';
+        const queryquiz3 = ' WHERE "User_Quiz".email = ' + "'" + step.result + "'" + ' AND "User_Quiz".idQuiz = "Quiz".idQuiz'
         
         finalquery = queryquiz1 + queryquiz2 + queryquiz3;
         await conn.query(finalquery).then(result => {
@@ -103,38 +103,33 @@ export class SearchforemailDialog extends ComponentDialog {
                 "type": "TextBlock",
                 "size": "Medium",
                 "weight": "Bolder",
-                "text": this.credenziali.nome + ' ' + this.credenziali.cognome,
+                "text": this.credenziali.recordset[0].nome + ' ' + this.credenziali.recordset[0].cognome,
                 "horizontalAlignment": "Center",
                 "separator": "true"
             });
 
-            this.facts.push({
-                "title":"Posizione",
-                "value": this.credenziali.titolo
-            });
-            for(var i = 0; i<3 ; i++){
-                this.facts.push({
-                    "title": "Domanda",
-                    "value": this.quiz.recordset[0].domanda
-                });
-                this.facts.push({
-                    "title": "Risp esatta",
-                    "value": this.quiz.recordset[0].rispcorretta
-                });
-                this.facts.push({
-                    "title": "Risp data",
-                    "value": this.quiz.recordset[0].risposta
-                });
-                this.facts.push({
-                    "title": "Punteggio",
-                    "value": this.quiz.recordset[0].punteggio
-                });
-            }
-
             this.texts.push({
-                "type": "FactSet",
-                "facts": JSON.parse(JSON.stringify(this.facts))
-            });
+                "type": "TextBlock",
+                "text": "Posizione scelta: " + this.credenziali.recordset[0].titolo,
+                "wrap": "true",
+                "separator": "true"
+              });
+
+
+            var text,numero;
+            for(var i = 0; i<3 ; i++){
+                numero = i+1;
+                text = "\n\nDomanda " + numero + ") " + this.quiz.recordset[i].domanda + "\n\n";
+                text += "Risposta esatta: " +  this.quiz.recordset[i].rispcorretta + "\n\n";
+                text += "Risposta data: " + this.quiz.recordset[i].risposta + "\n\n";
+                text += "Punteggio: " + this.quiz.recordset[i].punteggio + "\n\n";
+                this.texts.push({
+                    "type": "TextBlock",
+                    "text": text,
+                    "wrap": "true",
+                    "separator": "true"
+                  });
+            }
             
             const card = {
                 "type": "AdaptiveCard",
@@ -145,9 +140,11 @@ export class SearchforemailDialog extends ComponentDialog {
                 "version": "1.1"
             };
 
-            return await step.context.sendActivity({
+            await step.context.sendActivity({
                 attachments: [CardFactory.adaptiveCard(card)]
             });
+
+            return step.next(step);
         }
         else{
             return await step.context.sendActivity("Non è stato trovato nessun test associato a questo indirizzo e-mail.");
@@ -160,6 +157,7 @@ export class SearchforemailDialog extends ComponentDialog {
     }
 
     async finalStep(step) {
+        this.texts = []; this.quiz = null; this.credenziali = null;
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
         if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
             return await step.endDialog();
