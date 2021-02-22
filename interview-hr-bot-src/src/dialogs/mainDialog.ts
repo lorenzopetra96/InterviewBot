@@ -1,12 +1,15 @@
-import { MessageFactory , ActivityTypes } from "botbuilder";
-import { InputHints } from 'botbuilder';
+import { ActivityHandler, MessageFactory , ActivityTypes } from "botbuilder";
+import { InputHints, StatePropertyAccessor, TurnContext } from 'botbuilder';
 import { LuisRecognizer } from 'botbuilder-ai';
 import {
     ComponentDialog,
     DialogSet,
+    DialogState,
+    DialogTurnResult,
     DialogTurnStatus,
     TextPrompt,
-    WaterfallDialog
+    WaterfallDialog,
+    WaterfallStepContext
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
 import { AdminDialog } from "./adminDialog";
@@ -19,7 +22,7 @@ const TEXT_PROMPT = 'TEXT_PROMPT';
 const REGISTRATION_DIALOG = 'REGISTRATION_DIALOG';
 const USER_DIALOG = 'USER_DIALOG';
 const ADMIN_DIALOG = 'ADMIN_DIALOG';
-
+//Oggetto ConnectionPool per effettuare la connessione al database
 var conn = require('./../../connectionpool.js');
 
 export class MainDialog extends ComponentDialog {
@@ -34,7 +37,7 @@ export class MainDialog extends ComponentDialog {
         
         //The primary goal of PromptDialog is an easy way to get input from the user and validate the data
         this.addDialog(new TextPrompt(TEXT_PROMPT));
-        this.addDialog(new RegistrationDialog());
+        this.addDialog(new RegistrationDialog(luisRecognizer));
         this.addDialog(new UserDialog(luisRecognizer));
         this.addDialog(new AdminDialog(luisRecognizer));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
@@ -82,23 +85,18 @@ export class MainDialog extends ComponentDialog {
 
     async identificationStep1(step) {
         const message = step.result;
-        var email: any;
-        var nome: any;
-        var cognome: any;
-        let regexpEmail = new RegExp('^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$');
-        const reply = {
-            type: ActivityTypes.Message
-        };
+        
         // Call LUIS and gather user request.
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
         
-        if(message == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
+        if(message == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
             await step.context.sendActivity("Allora è il momento di registrarsi!");
+            //In caso di registrazione, viene utilizzata 'registrazione' per ripartire dal primo step del dialog
             this.registrazione = true;
             return await step.beginDialog(REGISTRATION_DIALOG);
 
         }
-        else if(message == 'si' || LuisRecognizer.topIntent(luisResult) === 'Si'){
+        else if(message == 'si' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'Si'){
             await step.context.sendActivity("Ah ci conosciamo già, dimmi con quale indirizzo e-mail ti sei registrato.");
             if (!step.values.email) {
                 return await step.prompt(TEXT_PROMPT, 'Mi servirebbe il tuo indirizzo e-mail.');
@@ -108,12 +106,14 @@ export class MainDialog extends ComponentDialog {
             }
         }
         else{
+            await step.context.sendActivity("Non ho ben capito cosa mi hai detto, facciamo un passo indietro..");
             return await step.replaceDialog(this.id);
         }
 
     }
 
     async identificationStep2(step){
+        //Viene controllato il valore di registrazione, TRUE -> replaceDialog e si riparte dal primo step
         if(this.registrazione) {this.registrazione = false; return await step.replaceDialog(this.id);}
         step.values.email = step.result;
         var finalquery = "SELECT * FROM" + ' "User"' + " WHERE email = '" + step.values.email + "';"; 
@@ -122,14 +122,14 @@ export class MainDialog extends ComponentDialog {
             this.res = result;
         });
 
-        //await step.context.sendActivity("Dammi pochi secondi per controllare..");
         return await step.next(step);
     }
 
     async identificationStep3(step){
+        //Se il contenuto del risultato della query dello step precedente è vuoto allora si riparte dal primo step del dialog
+        //altrimenti viene chiamato il dialog corrispondente al ruolo associato all'indirizzo e-mail inserito dall'utente
         if(this.res.rowsAffected != 0){
-            let email;
-            let ruolo;
+            let email, ruolo;
             var datiUtente;
             this.res.recordset.forEach(elem => {email=elem.email; ruolo=elem.ruolo; datiUtente=elem});
             if(ruolo==0){
@@ -141,7 +141,7 @@ export class MainDialog extends ComponentDialog {
             
         }
         else{
-            await step.context.sendActivity("Non ho trovato nessun account associato a questo indirizzo e-mail\nFacciamo un passo indietro..");
+            await step.context.sendActivity("Non ho trovato nessun account associato a questo indirizzo e-mail\n\nFacciamo un passo indietro..");
 
             return await step.replaceDialog(this.id);
         }

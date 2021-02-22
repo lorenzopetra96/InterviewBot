@@ -1,21 +1,26 @@
-import { MessageFactory , ActivityTypes, ActionTypes, CardFactory } from "botbuilder";
+import { ActivityHandler, MessageFactory , ActivityTypes, ActionTypes, CardFactory, BotCallbackHandlerKey } from "botbuilder";
+import { InputHints, StatePropertyAccessor, TurnContext } from 'botbuilder';
 import { LuisRecognizer } from 'botbuilder-ai';
 import {
     ComponentDialog,
     DialogSet,
+    DialogState,
+    DialogTurnResult,
     DialogTurnStatus,
     TextPrompt,
-    WaterfallDialog
+    WaterfallDialog,
+    WaterfallStepContext
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
 import { InterviewDialog } from "./interviewDialog";
+import * as AdaptiveCards from "adaptivecards";
 var cardJSON = require("../../images/cards/infoCard.json");
 
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 const TEXT_PROMPT = 'TEXT_PROMPT';
 const USER_DIALOG = 'USER_DIALOG';
 const INTERVIEW_DIALOG = 'INTERVIEW_DIALOG';
-
+//Oggetto ConnectionPool per effettuare la connessione al database
 var conn = require('./../../connectionpool.js');
 
 export class UserDialog extends ComponentDialog {
@@ -66,6 +71,8 @@ export class UserDialog extends ComponentDialog {
         
         
         console.log(finalquery);
+        //Viene controllato se l'utente ha già effettuato un colloquio.
+        //In caso positivo, può solo visualizzare le informazioni dell'azienda.
         await conn.query(finalquery).then((result) => {
             this.res = result;
             console.log(result);
@@ -79,6 +86,9 @@ export class UserDialog extends ComponentDialog {
 
     async menuStep(step){
         var card;
+        //Se il contenuto del risultato della query dello step precedente è vuoto
+        //allora può sia effettuare un colloquio che visualizzare le informazioni 
+        //dell'azienda
         if(this.res.rowsAffected == 0){
             
             const buttons = [{
@@ -135,13 +145,14 @@ export class UserDialog extends ComponentDialog {
 
     async choiceStep(step){
 
-        if(step.result == "Info"){
+        const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
+        if(step.result == "Info" || LuisRecognizer.topIntent(luisResult) === 'Info'){
             await step.context.sendActivity({
                 attachments: [CardFactory.adaptiveCard(cardJSON)]
             });
 
         }
-        else if(step.result == "Colloquio"){
+        else if(step.result == "Colloquio" || LuisRecognizer.topIntent(luisResult) === 'Colloquio'){
             if(this.res.rowsAffected != 0){
                 await step.context.sendActivity("Mi dispiace ma hai già effettuato un colloquio, puoi solo visualizzare le informazioni dell'azienda:");
                 
@@ -167,10 +178,10 @@ export class UserDialog extends ComponentDialog {
 
     async finalStep(step){
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
-        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
+        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
             return await step.endDialog();
         }
-        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult) === 'Si'){
+        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'Si'){
             return await step.replaceDialog(this.id, this.datiUtente);
         }
         else{

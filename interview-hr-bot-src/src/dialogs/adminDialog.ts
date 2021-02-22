@@ -1,11 +1,15 @@
-import { MessageFactory , ActivityTypes, ActionTypes, CardFactory } from "botbuilder";
+import { ActivityHandler, MessageFactory , ActivityTypes, ActionTypes, CardFactory } from "botbuilder";
+import { InputHints, StatePropertyAccessor, TurnContext } from 'botbuilder';
 import { LuisRecognizer } from 'botbuilder-ai';
 import {
     ComponentDialog,
     DialogSet,
+    DialogState,
+    DialogTurnResult,
     DialogTurnStatus,
     TextPrompt,
-    WaterfallDialog
+    WaterfallDialog,
+    WaterfallStepContext
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
 import { SearchforemailDialog } from "./searchforemailDialog";
@@ -17,6 +21,7 @@ const TEXT_PROMPT = 'TEXT_PROMPT';
 const ADMIN_DIALOG = 'ADMIN_DIALOG';
 const SEARCHFOREMAIL_DIALOG = 'SEARCHFOREMAIL_DIALOG';
 const SEARCHFORPOSITION_DIALOG = 'SEARCHFORPOSITION_DIALOG';
+//Oggetto ConnectionPool per effettuare la connessione al database
 var conn = require('./../../connectionpool.js');
 
 export class AdminDialog extends ComponentDialog {
@@ -63,11 +68,6 @@ export class AdminDialog extends ComponentDialog {
         this.datiUtente = step._info.options;
         const welcomeText = "Benvenuto " + this.datiUtente.nome + " " + this.datiUtente.cognome + ", come posso aiutarti?";
         
-
-        const reply = {
-            type: ActivityTypes.Message 
-        };
-
         const buttons = [{
             type: ActionTypes.ImBack,
             title: 'Effettua una ricerca per utente',
@@ -96,15 +96,16 @@ export class AdminDialog extends ComponentDialog {
     }
 
     async choiceStep(step){
-
-        if(step.result == "Utente"){
+        const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
+        
+        if(step.result == "Utente" || LuisRecognizer.topIntent(luisResult) === 'Utente'){
             return await step.beginDialog(SEARCHFOREMAIL_DIALOG, this.datiUtente);
         }
-        else if(step.result == "Posizione"){
+        else if(step.result == "Posizione" || LuisRecognizer.topIntent(luisResult) === 'Posizione'){
             return await step.beginDialog(SEARCHFORPOSITION_DIALOG, this.datiUtente);
         }
         else{
-            await step.context.sendActivity("Non hai effettuato nessuna scelta, quindi torniamo indietro di qualche passo..");
+            await step.context.sendActivity("Non hai effettuato nessuna scelta");
         }
        
         return step.next(step);
@@ -116,10 +117,10 @@ export class AdminDialog extends ComponentDialog {
 
     async finalStep(step) {
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
-        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
+        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
             return await step.endDialog();
         }
-        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult) === 'Si'){
+        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'Si'){
             return await step.replaceDialog(this.id, this.datiUtente);
         }
         else{

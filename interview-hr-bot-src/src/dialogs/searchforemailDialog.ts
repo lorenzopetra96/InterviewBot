@@ -1,11 +1,15 @@
-import { CardFactory } from "botbuilder";
+import { ActivityHandler, MessageFactory , ActivityTypes, ActionTypes, CardFactory } from "botbuilder";
+import { InputHints, StatePropertyAccessor, TurnContext } from 'botbuilder';
 import { LuisRecognizer } from 'botbuilder-ai';
 import {
     ComponentDialog,
     DialogSet,
+    DialogState,
+    DialogTurnResult,
     DialogTurnStatus,
     TextPrompt,
-    WaterfallDialog
+    WaterfallDialog,
+    WaterfallStepContext
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
 
@@ -73,6 +77,8 @@ export class SearchforemailDialog extends ComponentDialog {
         const querycredenz3 = 'WHERE  "User".email =' + "'" + step.result + "'" + ' AND "User_Pos".idPosAp = "Posizioni_Aperte".idPosAp AND "User_Pos".email = "User".email;'; 
         var finalquery = querycredenz1 + querycredenz2 + querycredenz3;
         console.log(finalquery);
+        
+        //Query per prelevare le credenziali e la posizione scelta dall'utente che ha effettuato il test
         await conn.query(finalquery).then(result => {
             this.credenziali = result;
         });
@@ -80,8 +86,9 @@ export class SearchforemailDialog extends ComponentDialog {
         const queryquiz1 = 'SELECT  "Quiz".domanda, "Quiz".rispcorretta , "User_Quiz".risposta , "User_Quiz".punteggio';
         const queryquiz2 = ' FROM  "Quiz" , "User_Quiz"';
         const queryquiz3 = ' WHERE "User_Quiz".email = ' + "'" + step.result + "'" + ' AND "User_Quiz".idQuiz = "Quiz".idQuiz'
-        
         finalquery = queryquiz1 + queryquiz2 + queryquiz3;
+        
+        //Query per prelevare i test svolti dall'utente scelto
         await conn.query(finalquery).then(result => {
             this.quiz = result;
         });
@@ -92,7 +99,8 @@ export class SearchforemailDialog extends ComponentDialog {
     }
 
     async testStep(step){
-
+        //Se esistono test effettuati da quell'utente allora viene costruita la card di presentazione test
+        //altrimenti si passa allo step successivo
         if(this.quiz.rowsAffected != 0){
             
             this.texts.push({
@@ -155,10 +163,10 @@ export class SearchforemailDialog extends ComponentDialog {
     async finalStep(step) {
         this.texts = []; this.quiz = null; this.credenziali = null;
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
-        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
+        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
             return await step.endDialog();
         }
-        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult) === 'Si'){
+        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'Si'){
             return await step.replaceDialog(this.id, this.datiUtente);
         }
         else{

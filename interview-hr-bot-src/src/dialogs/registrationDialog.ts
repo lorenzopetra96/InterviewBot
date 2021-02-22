@@ -1,31 +1,38 @@
+import { ActivityHandler, MessageFactory , ActivityTypes } from "botbuilder";
+import { InputHints, StatePropertyAccessor, TurnContext } from 'botbuilder';
+import { LuisRecognizer } from 'botbuilder-ai';
 import {
     ComponentDialog,
     DialogSet,
+    DialogState,
+    DialogTurnResult,
     DialogTurnStatus,
     TextPrompt,
-    WaterfallDialog
+    WaterfallDialog,
+    WaterfallStepContext
 } from 'botbuilder-dialogs';
-
+import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
 
 
 const WATERFALL_DIALOG = 'WATERFALL_DIALOG';
 const TEXT_PROMPT = 'TEXT_PROMPT';
 const REGISTRATION_DIALOG = 'REGISTRATION_DIALOG';
 
-
+//Oggetto ConnectionPool per effettuare la connessione al database
 var conn = require('./../../connectionpool.js');
 
 
 export class RegistrationDialog extends ComponentDialog {
-
-    constructor(){
+    private luisRecognizer: InterviewBotRecognizer;
+    constructor(luisRecognizer: InterviewBotRecognizer){
         super(REGISTRATION_DIALOG);
-
+        this.luisRecognizer = luisRecognizer;
         
         //The primary goal of PromptDialog is an easy way to get input from the user and validate the data
         this.addDialog(new TextPrompt(TEXT_PROMPT));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
                 this.welcomeStep.bind(this),
+                this.registrationStep.bind(this),
                 this.emailStep.bind(this),
                 this.surnameStep.bind(this),
                 this.finalStep.bind(this)
@@ -54,46 +61,51 @@ export class RegistrationDialog extends ComponentDialog {
     
     async welcomeStep(step){
 
-        if (!step.values.email) {
-            return await step.prompt(TEXT_PROMPT, 'Ho bisogno di un indirizzo e-mail valido per registrarti. Qual è il tuo?');
+            return await step.prompt(TEXT_PROMPT, 'Sei sicuro di volerti registrare?');
+            
+    }
 
-        } else {
-            return await step.next(step.values.email);
+    async registrationStep(step){
+        // Call LUIS and gather user request.
+        const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
+        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
+            return await step.endDialog();
+        }
+        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'Si'){
+            return await step.prompt(TEXT_PROMPT, 'Ho bisogno di un indirizzo e-mail valido per registrarti. Qual è il tuo?');
+        }
+        else{
+            await step.context.sendActivity("Non ho ben capito cosa intendi, facciamo un passo indietro..");
+            return await step.endDialog();
         }
     }
 
 
     async emailStep(step) {
-        
+        //Controllo sul formato dell'indirizzo e-mail inserito
         let regexpEmail = new RegExp('[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,3}');
         step.values.email = step.result;
-
+        var error;
+        await conn.query('SELECT * FROM "User" WHERE "User".email=' + "'" + step.result + "';").then(result =>{
+            error=result;
+        });
+        console.log(error);
         if(!regexpEmail.test(step.values.email)){
-            await step.context.sendActivity("E-mail non valida.. deve essere di un formato simile a rossi@ninini.it, riprova da capo");
+            await step.context.sendActivity("E-mail non valida.. deve essere di un formato simile a rossi@xxxxx.it, riprova!");
             return await step.replaceDialog(this.id);
 
-        }else{
-
-            if (!step.values.surname) {
-                return await step.prompt(TEXT_PROMPT, 'Mi servirebbe il tuo cognome.');
-
-            } else {
-                return await step.next(step.values.surname);
-            }
+        }else if(error.rowsAffected==0) return await step.prompt(TEXT_PROMPT, 'Mi servirebbe il tuo cognome.');
+        else {
+            await step.context.sendActivity("Mi dispiace ma è già presente un profilo associato a questo indirizzo e-mail");
+            return await step.replaceDialog(this.id);
         }
-        
     }
 
     async surnameStep(step) {
 
         step.values.surname = step.result;
-       
-        if (!step.values.name) {
-            return await step.prompt(TEXT_PROMPT, 'Mi servirebbe il tuo nome.');
 
-        } else {
-            return await step.next(step.values.name);
-        }
+        return await step.prompt(TEXT_PROMPT, 'Mi servirebbe il tuo nome.');
 
 
     }
@@ -113,10 +125,9 @@ export class RegistrationDialog extends ComponentDialog {
         var sql2 = "('" + data.email + "','" + data.nome + "','" + data.cognome + "'," + 1 + ");";
         var finalquery = sql1.concat(sql2);
         console.log(finalquery);
-
-        conn.query(finalquery).then((result) => console.log(result));
-
-              
+        //Inserimento del profilo utente nel db
+        await conn.query(finalquery).then((result) => console.log(result));
+   
         await step.context.sendActivity("Registrato con successo. Ora facciamo qualche passo indietro");
         
         return await step.endDialog();

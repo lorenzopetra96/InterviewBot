@@ -1,11 +1,15 @@
-import { MessageFactory , ActionTypes, CardFactory } from "botbuilder";
+import { ActivityHandler, MessageFactory , ActivityTypes, ActionTypes, CardFactory } from "botbuilder";
+import { InputHints, StatePropertyAccessor, TurnContext } from 'botbuilder';
 import { LuisRecognizer } from 'botbuilder-ai';
 import {
     ComponentDialog,
     DialogSet,
+    DialogState,
+    DialogTurnResult,
     DialogTurnStatus,
     TextPrompt,
-    WaterfallDialog    
+    WaterfallDialog,
+    WaterfallStepContext
 } from 'botbuilder-dialogs';
 import { InterviewBotRecognizer } from "../cognitiveModels/InterviewBotRecognizer";
 
@@ -58,7 +62,8 @@ export class SearchforpositionDialog extends ComponentDialog {
     async welcomeStep(step){
 
         this.datiUtente = step._info.options;
-
+        
+        //Prelievo delle posizioni aperte da presentare all'admin per effettuare la scelta
         const finalquery = 'SELECT * FROM "Posizioni_Aperte";';
         await conn.query(finalquery).then((result) => {
 
@@ -99,6 +104,8 @@ export class SearchforpositionDialog extends ComponentDialog {
         const queryposap3 = 'WHERE "Posizioni_Aperte".titolo = ' + "'" + step.result + "'" + ' AND "Posizioni_Aperte".idPosAp = "User_Pos".idPosAp AND "User_Pos".email = "User".email';
 
         var finalquery = queryposap1 + queryposap2 + queryposap3;
+        //Query per prelevare tutti i profili utente che hanno effettuato un test per la posizione aperta scelta dall'admin
+        //Se non ci sono stati candidati per quella figura, verrà presentato un messaggio di notifica nella card
         await conn.query(finalquery).then((result) => {
             var text = "Candidati per la figura di " + step.result;
             this.texts.push({
@@ -154,10 +161,10 @@ export class SearchforpositionDialog extends ComponentDialog {
         this.texts = [];
         this.buttons = [];
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
-        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
+        if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
             return await step.endDialog();
         }
-        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult) === 'Si'){
+        else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'Si'){
             return await step.replaceDialog(this.id, this.datiUtente);
         }
         else{

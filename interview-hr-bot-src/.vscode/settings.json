@@ -5,6 +5,6 @@
     "azureFunctions.projectRuntime": "~3",
     "debug.internalConsoleOptions": "neverOpen",
     "azureFunctions.preDeployTask": "npm prune",
-    "appService.defaultWebAppToDeploy": "",
+    "appService.defaultWebAppToDeploy": "/subscriptions/1de71489-ba43-4904-951e-f7055ffec3d4/resourceGroups/CloudComputingProject/providers/Microsoft.Web/sites/interview-hr-bot",
     "appService.deploySubpath": "."
 }
