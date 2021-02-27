@@ -32,7 +32,7 @@ export class SearchforemailDialog extends ComponentDialog {
         //The primary goal of PromptDialog is an easy way to get input from the user and validate the data
         this.addDialog(new TextPrompt(TEXT_PROMPT));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
-                this.welcomeStep.bind(this),
+                this.emailStep.bind(this),
                 this.dbStep.bind(this),
                 this.testStep.bind(this),
                 this.prefinalStep.bind(this),
@@ -60,7 +60,7 @@ export class SearchforemailDialog extends ComponentDialog {
         }
     }
 
-    async welcomeStep(step){
+    async emailStep(step){
 
         this.datiUtente = step._info.options;
         

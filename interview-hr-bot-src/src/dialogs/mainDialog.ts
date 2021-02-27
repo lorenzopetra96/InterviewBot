@@ -42,9 +42,9 @@ export class MainDialog extends ComponentDialog {
         this.addDialog(new AdminDialog(luisRecognizer));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
                 this.welcomeStep.bind(this),
-                this.identificationStep1.bind(this),
-                this.identificationStep2.bind(this),
-                this.identificationStep3.bind(this),
+                this.registrationcheckStep.bind(this),
+                this.dbStep.bind(this),
+                this.choiceStep.bind(this),
                 this.loopStep.bind(this)
             ]));
 
@@ -83,7 +83,7 @@ export class MainDialog extends ComponentDialog {
         });
     }
 
-    async identificationStep1(step) {
+    async registrationcheckStep(step) {
         const message = step.result;
         
         // Call LUIS and gather user request.
@@ -112,7 +112,7 @@ export class MainDialog extends ComponentDialog {
 
     }
 
-    async identificationStep2(step){
+    async dbStep(step){
         //Viene controllato il valore di registrazione, TRUE -> replaceDialog e si riparte dal primo step
         if(this.registrazione) {this.registrazione = false; return await step.replaceDialog(this.id);}
         step.values.email = step.result;
@@ -125,7 +125,7 @@ export class MainDialog extends ComponentDialog {
         return await step.next(step);
     }
 
-    async identificationStep3(step){
+    async choiceStep(step){
         //Se il contenuto del risultato della query dello step precedente è vuoto allora si riparte dal primo step del dialog
         //altrimenti viene chiamato il dialog corrispondente al ruolo associato all'indirizzo e-mail inserito dall'utente
         if(this.res.rowsAffected != 0){

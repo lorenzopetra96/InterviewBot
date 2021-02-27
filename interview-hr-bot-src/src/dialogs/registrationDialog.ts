@@ -32,7 +32,7 @@ export class RegistrationDialog extends ComponentDialog {
         this.addDialog(new TextPrompt(TEXT_PROMPT));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
                 this.welcomeStep.bind(this),
-                this.registrationStep.bind(this),
+                this.choiceStep.bind(this),
                 this.emailStep.bind(this),
                 this.surnameStep.bind(this),
                 this.finalStep.bind(this)
@@ -65,7 +65,7 @@ export class RegistrationDialog extends ComponentDialog {
             
     }
 
-    async registrationStep(step){
+    async choiceStep(step){
         // Call LUIS and gather user request.
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
         if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){

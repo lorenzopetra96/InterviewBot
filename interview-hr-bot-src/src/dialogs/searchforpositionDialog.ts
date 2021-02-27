@@ -31,7 +31,7 @@ export class SearchforpositionDialog extends ComponentDialog {
         //The primary goal of PromptDialog is an easy way to get input from the user and validate the data
         this.addDialog(new TextPrompt(TEXT_PROMPT));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
-                this.welcomeStep.bind(this),
+                this.dbStep.bind(this),
                 this.choiceStep.bind(this),
                 this.openedpositionsStep.bind(this),
                 this.prefinalStep.bind(this),
@@ -59,7 +59,7 @@ export class SearchforpositionDialog extends ComponentDialog {
         }
     }
 
-    async welcomeStep(step){
+    async dbStep(step){
 
         this.datiUtente = step._info.options;
         
