@@ -148,7 +148,7 @@ export class InterviewDialog extends ComponentDialog {
                 break;
             }
             else if(i == (this.res.rowsAffected - 1)){
-                clean();
+                this.clean();
                 await step.context.sendActivity("Non hai scelto nessuna delle posizioni aperte elencate, quindi torniamo qualche passo indietro");
                 return await step.replaceDialog(this.id, this.datiUtente); 
             }
@@ -223,12 +223,12 @@ export class InterviewDialog extends ComponentDialog {
 
         }
         else if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
-            clean();
+            this.clean();
             await step.context.sendActivity("Perfetto, allora torniamo qualche passo indietro..");
             return await step.endDialog();
         }
         else{
-            clean();
+            this.clean();
             await step.context.sendActivity("Non ho ben capito cosa hai scritto quindi torniamo qualche passo indietro..");
             return await step.replaceDialog(this.id, this.datiUtente);
         }
@@ -432,7 +432,7 @@ export class InterviewDialog extends ComponentDialog {
     }
 
     async finalStep(step){
-        clean();
+        this.clean();
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
         if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
             return await step.endDialog();
@@ -446,20 +446,24 @@ export class InterviewDialog extends ComponentDialog {
         }
     }
 
+
+    clean(){
+    
+        if(this.quiz != undefined) this.quiz = [];
+        if(this.texts != undefined) this.texts = [];
+        this.res = null;
+        this.emailadmin = null;
+        if(this.buttons != undefined) this.buttons = [];
+        if(this.risposte != undefined) this.risposte = [];
+        this.posizione_scelta = null;
+        this.idPosizioneScelta = null;
+        if(this.urls != undefined) this.urls = [];
+        if(this.punteggio != undefined) this.punteggio = [];
+    }
+
 }
 
-function clean(){
-    this.quiz = [];
-    this.texts = [];
-    this.res = null;
-    this.emailadmin = null;
-    this.buttons = [];
-    this.risposte = [];
-    this.posizione_scelta = null;
-    this.idPosizioneScelta = null;
-    this.urls = [];
-    this.punteggio = [];
-}
+
 
 
 module.exports.InterviewDialog = InterviewDialog;

@@ -67,7 +67,7 @@ export class UserDialog extends ComponentDialog {
 
        
         this.datiUtente = step._info.options;
-        var finalquery = 'SELECT * FROM "User_Pos"' + "WHERE email='" + this.datiUtente.email + "';";
+        var finalquery = 'SELECT * FROM "User_Pos"' + " WHERE email='" + this.datiUtente.email + "';";
         
         
         console.log(finalquery);
