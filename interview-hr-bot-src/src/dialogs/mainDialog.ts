@@ -76,7 +76,7 @@ export class MainDialog extends ComponentDialog {
             return await step.next();
         }
         
-        const messageText = step.options.restartMsg ? step.options.restartMsg : "Se vuoi avere informazioni riguardo l'azienda devi prima registrarti.\nCi conosciamo già?" ;
+        const messageText = step.options.restartMsg ? step.options.restartMsg : "Per ricevere informazioni riguardo l'azienda, devi prima essere registrato.\n\nSei già registrato?" ;
         const promptMessage = MessageFactory.text(messageText, messageText, InputHints.ExpectingInput);
         return await step.prompt(TEXT_PROMPT, {
             prompt: promptMessage
@@ -97,9 +97,8 @@ export class MainDialog extends ComponentDialog {
 
         }
         else if(message == 'si' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'Si'){
-            await step.context.sendActivity("Ah ci conosciamo già, dimmi con quale indirizzo e-mail ti sei registrato.");
             if (!step.values.email) {
-                return await step.prompt(TEXT_PROMPT, 'Mi servirebbe il tuo indirizzo e-mail.');
+                return await step.prompt(TEXT_PROMPT, 'Inserisci il tuo indirizzo e-mail');
     
             } else {
                 return await step.next(step.values.email);

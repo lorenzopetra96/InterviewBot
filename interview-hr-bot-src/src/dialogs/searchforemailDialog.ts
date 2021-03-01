@@ -151,17 +151,19 @@ export class SearchforemailDialog extends ComponentDialog {
             return step.next(step);
         }
         else{
+
             return await step.context.sendActivity("Non è stato trovato nessun test associato a questo indirizzo e-mail.");
         }
     }
 
 
     async prefinalStep(step){
+        this.clean();
         return await step.prompt(TEXT_PROMPT, 'Vuoi effettuare un\'altra ricerca per indirizzo e-mail?');
     }
 
     async finalStep(step) {
-        this.texts = []; this.quiz = null; this.credenziali = null;
+        
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
         if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
             return await step.endDialog();
@@ -173,6 +175,13 @@ export class SearchforemailDialog extends ComponentDialog {
             await step.context.sendActivity("Non ho ben capito cosa intendi, facciamo un passo indietro..");
             return await step.endDialog();
         }
+    }
+
+    clean(){
+    
+        this.quiz = null;
+        if(this.texts != undefined) this.texts = [];
+        this.credenziali = null;
     }
     
    

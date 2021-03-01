@@ -153,13 +153,11 @@ export class SearchforpositionDialog extends ComponentDialog {
         await step.context.sendActivity({
             attachments: [CardFactory.adaptiveCard(candidati)]
         });
-        
+        this.clean();
         return await step.prompt(TEXT_PROMPT, 'Vuoi effettuare un\'altra ricerca per posizione aperta?');
     }
 
     async finalStep(step) {
-        this.texts = [];
-        this.buttons = [];
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
         if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
             return await step.endDialog();
@@ -171,6 +169,11 @@ export class SearchforpositionDialog extends ComponentDialog {
             await step.context.sendActivity("Non ho ben capito cosa intendi, facciamo un passo indietro..");
             return await step.endDialog();
         }
+    }
+
+    clean(){
+        if(this.texts != undefined) this.texts = [];
+        if(this.buttons != undefined) this.buttons = [];
     }
     
    

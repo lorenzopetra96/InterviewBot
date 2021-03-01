@@ -149,7 +149,7 @@ export class InterviewDialog extends ComponentDialog {
             }
             else if(i == (this.res.rowsAffected - 1)){
                 this.clean();
-                await step.context.sendActivity("Non hai scelto nessuna delle posizioni aperte elencate, quindi torniamo qualche passo indietro");
+                await step.context.sendActivity("Non hai scelto nessuna delle posizioni aperte elencate");
                 return await step.replaceDialog(this.id, this.datiUtente); 
             }
         }
@@ -224,12 +224,12 @@ export class InterviewDialog extends ComponentDialog {
         }
         else if(step.result == 'no' || LuisRecognizer.topIntent(luisResult) === 'No'){
             this.clean();
-            await step.context.sendActivity("Perfetto, allora torniamo qualche passo indietro..");
+            await step.context.sendActivity("Perfetto, allora torniamo al menù precedente...");
             return await step.endDialog();
         }
         else{
             this.clean();
-            await step.context.sendActivity("Non ho ben capito cosa hai scritto quindi torniamo qualche passo indietro..");
+            await step.context.sendActivity("Non ho ben capito cosa hai scritto quindi torniamo al menù precedente...");
             return await step.replaceDialog(this.id, this.datiUtente);
         }
     }
@@ -420,7 +420,7 @@ export class InterviewDialog extends ComponentDialog {
             await step.context.sendActivity("C'è stato qualche problema nell'invio dell'e-mail..");
         }
         
-
+        this.clean();
         return await step.next(step);
 
     }
@@ -432,7 +432,7 @@ export class InterviewDialog extends ComponentDialog {
     }
 
     async finalStep(step){
-        this.clean();
+        
         const luisResult = await this.luisRecognizer.executeLuisQuery(step.context);
         if(step.result == 'no' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'No'){
             return await step.endDialog();

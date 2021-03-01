@@ -72,7 +72,7 @@ export class RegistrationDialog extends ComponentDialog {
             return await step.endDialog();
         }
         else if(step.result == 'si' || LuisRecognizer.topIntent(luisResult,'None',0.3) === 'Si'){
-            return await step.prompt(TEXT_PROMPT, 'Ho bisogno di un indirizzo e-mail valido per registrarti. Qual è il tuo?');
+            return await step.prompt(TEXT_PROMPT, 'Ho bisogno di un indirizzo e-mail valido per registrarti.\n\nInserisci il tuo indirizzo e-mail');
         }
         else{
             await step.context.sendActivity("Non ho ben capito cosa intendi, facciamo un passo indietro..");
@@ -94,7 +94,7 @@ export class RegistrationDialog extends ComponentDialog {
             await step.context.sendActivity("E-mail non valida.. deve essere di un formato simile a rossi@xxxxx.it, riprova!");
             return await step.replaceDialog(this.id);
 
-        }else if(error.rowsAffected==0) return await step.prompt(TEXT_PROMPT, 'Mi servirebbe il tuo cognome.');
+        }else if(error.rowsAffected==0) return await step.prompt(TEXT_PROMPT, 'Indirizzo e-mail corretto. Ora inserisci il tuo cognome');
         else {
             await step.context.sendActivity("Mi dispiace ma è già presente un profilo associato a questo indirizzo e-mail");
             return await step.replaceDialog(this.id);
@@ -105,7 +105,7 @@ export class RegistrationDialog extends ComponentDialog {
 
         step.values.surname = step.result;
 
-        return await step.prompt(TEXT_PROMPT, 'Mi servirebbe il tuo nome.');
+        return await step.prompt(TEXT_PROMPT, 'Inserisci il tuo nome');
 
 
     }
@@ -128,7 +128,7 @@ export class RegistrationDialog extends ComponentDialog {
         //Inserimento del profilo utente nel db
         await conn.query(finalquery).then((result) => console.log(result));
    
-        await step.context.sendActivity("Registrato con successo. Ora facciamo qualche passo indietro");
+        await step.context.sendActivity("Registrato con successo. Torniamo al menù principale...");
         
         return await step.endDialog();
     }
