@@ -384,12 +384,12 @@ export class InterviewDialog extends ComponentDialog {
 
         var datiutente = "\nIl seguente test è stato fatto da " +  this.datiUtente.cognome + " " + this.datiUtente.nome + " per la posizione di " + this.posizione_scelta;
 
-        var quiz1 = "\n\nTEST\nDomanda numero 1: " + this.quiz[0].domanda + "\nRisposta esatta: " + this.quiz[0].rispcorretta + "\nRisposta data: " + this.risposte[0] + "\nPunteggio: " + this.punteggio[0];
+        var quiz1 = "\n\nTEST\nDomanda numero 1: " + this.quiz[0].domanda + "\nRisposta esatta: " + this.quiz[0].rispcorretta + "\nRisposta fornita: " + this.risposte[0] + "\nPunteggio: " + this.punteggio[0];
         if(!this.punteggio[0]) quiz1 = quiz1 + "\nLink consigliato per l'argomento: " + this.urls[0];
-        var quiz2 = "\n\nDomanda numero 2: " + this.quiz[1].domanda + "\nRisposta esatta: " + this.quiz[1].rispcorretta + "\nRisposta data: " + this.risposte[1] + "\nPunteggio: " + this.punteggio[1];
+        var quiz2 = "\n\nDomanda numero 2: " + this.quiz[1].domanda + "\nRisposta esatta: " + this.quiz[1].rispcorretta + "\nRisposta fornita: " + this.risposte[1] + "\nPunteggio: " + this.punteggio[1];
         
         if(!this.punteggio[1]) quiz2 = quiz2 + "\nLink consigliato per l'argomento: " + this.urls[1]; 
-        var quiz3 = "\n\nDomanda numero 3: " + this.quiz[2].domanda + "\nRisposta esatta: " + this.quiz[2].rispcorretta + "\nRisposta data: " + this.risposte[2] + "\nPunteggio: " + this.punteggio[2];
+        var quiz3 = "\n\nDomanda numero 3: " + this.quiz[2].domanda + "\nRisposta esatta: " + this.quiz[2].rispcorretta + "\nRisposta fornita: " + this.risposte[2] + "\nPunteggio: " + this.punteggio[2];
         
         if(!this.punteggio[2]) quiz3 = quiz3 + "\nLink consigliato per l'argomento: " + this.urls[2];
         
